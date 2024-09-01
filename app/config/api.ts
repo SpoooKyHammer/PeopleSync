@@ -15,10 +15,8 @@ client.interceptors.response.use(response => {
 }, error => {
   if (error.response && error.response.status === 401) {
     // Handle unauthorized access, e.g., redirect to login page
-    console.log('Unauthorized access - redirecting to login.');
-    // You might want to clear the token and redirect to login here
-    setAuthToken(null); // Clear the token
-    window.location.href = '/login'; // Redirect to login page
+    setAuthToken(null);
+    window.location.href = '/login';
   }
   return Promise.reject(error);
 });
