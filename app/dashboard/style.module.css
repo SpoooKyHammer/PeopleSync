@@ -1,0 +1,16 @@
+.button-animate {
+  transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
+}
+
+.button-animate.rotate {
+  transform: rotate(45deg);
+}
+
+@media (max-width: 1024px) {
+  .button-animate {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 40;
+  }
+}
