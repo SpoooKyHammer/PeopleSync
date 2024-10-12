@@ -1,48 +1,22 @@
-import Image from "next/image";
-import { XIcon } from "@heroicons/react/solid";
-import defaultAvatar from "./../assets/chatting.png";
-import { Friend } from "@/types/types";
-import { getFriends, addFriend, removeFriend, acceptFriendRequest, rejectFriendRequest } from "@/api/users";
-import { sortFriends } from "@/utils/sorting";
-import { useRef, useState, useEffect } from "react";
+import Image from 'next/image';
+import { XIcon } from '@heroicons/react/solid';
+import defaultAvatar from './../assets/chatting.png';
+import React, { useRef, useEffect, useState } from 'react';
+import { addFriend, removeFriend, acceptFriendRequest, rejectFriendRequest } from '@/api/users';
+import { useUserContext } from '@/context/UserContext';
+import { createChat } from '@/api/chat';
 
 interface FriendModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-function FriendModal({ isOpen, onClose }: FriendModalProps) {
+const FriendModal: React.FC<FriendModalProps> = ({ isOpen, onClose }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<Friend[]>([]);
-  const [usernameInput, setUsernameInput] = useState<string>("");
+  const { id, friends, friendRequests, setFriends, setFriendRequests } = useUserContext();
+  const [usernameInput, setUsernameInput] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (isOpen) {
-        let res = await getFriends();
-        if (res.success) {
-          sortFriends(res.friends);
-          setFriends(res.friends);
-          setPendingRequests(res.friendRequests);
-        }
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      if (!isOpen) {
-        setFriends([]);
-        setPendingRequests([]);
-        setUsernameInput("");
-        setErrorMessage(null);
-        setSuccessMessage(null);
-      }
-    };
-  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -52,11 +26,11 @@ function FriendModal({ isOpen, onClose }: FriendModalProps) {
     };
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
 
@@ -64,50 +38,65 @@ function FriendModal({ isOpen, onClose }: FriendModalProps) {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    if (usernameInput.trim() === "") {
-      setErrorMessage("Username cannot be empty.");
+    if (usernameInput.trim() === '') {
+      setErrorMessage('Username cannot be empty.');
       return;
     }
 
-    const res = await addFriend(usernameInput.trim());
-
-    if (res.success) {
-      setSuccessMessage("Friend request sent successfully.");
-      setUsernameInput("");
-      // Optionally refetch friends data to reflect the new state
-    } else {
-      setErrorMessage(res.message);
+    try {
+      const res = await addFriend(usernameInput.trim());
+      if (res.success) {
+        setSuccessMessage('Friend request sent successfully.');
+        setUsernameInput('');
+      } else {
+        setErrorMessage(res.message);
+      }
+    } catch (error) {
+      setErrorMessage('Failed to send friend request.');
     }
   };
 
   const handleRemoveFriend = async (username: string) => {
-    const res = await removeFriend(username);
-    if (res.success) {
-      setSuccessMessage("Friend removed successfully.");
-      setFriends(prevFriends => prevFriends.filter(f => f.username !== username));
-    } else {
-      setErrorMessage(res.message);
+    try {
+      const res = await removeFriend(username);
+      if (res.success) {
+        setSuccessMessage('Friend removed successfully.');
+        setFriends((prevFriends) => prevFriends.filter((f) => f.username !== username));
+      } else {
+        setErrorMessage(res.message);
+      }
+    } catch (error) {
+      setErrorMessage('Failed to remove friend.');
     }
   };
 
   const handleAcceptRequest = async (username: string) => {
-    const res = await acceptFriendRequest(username);
-    if (res.success) {
-      setSuccessMessage("Friend request accepted.");
-      setPendingRequests(prevRequests => prevRequests.filter(r => r.username !== username));
-      setFriends(prevFriends => [...prevFriends, { id: res.id, username: res.username }]);
-    } else {
-      setErrorMessage(res.message);
+    try {
+      const res = await acceptFriendRequest(username);
+      if (res.success) {
+        const chat = await createChat([id!, res.id]);
+        setSuccessMessage('Friend request accepted.');
+        setFriendRequests((prevRequests) => prevRequests.filter((r) => r.username !== username));
+        setFriends((prevFriends) => [...prevFriends, { id: res.id, username: res.username, chatId: chat._id }]);
+      } else {
+        setErrorMessage(res.message);
+      }
+    } catch (error) {
+      setErrorMessage('Failed to accept friend request.');
     }
   };
 
   const handleRejectRequest = async (username: string) => {
-    const res = await rejectFriendRequest(username);
-    if (res.success) {
-      setSuccessMessage("Friend request rejected.");
-      setPendingRequests(prevRequests => prevRequests.filter(r => r.username !== username));
-    } else {
-      setErrorMessage(res.message);
+    try {
+      const res = await rejectFriendRequest(username);
+      if (res.success) {
+        setSuccessMessage('Friend request rejected.');
+        setFriendRequests((prevRequests) => prevRequests.filter((r) => r.username !== username));
+      } else {
+        setErrorMessage(res.message);
+      }
+    } catch (error) {
+      setErrorMessage('Failed to reject friend request.');
     }
   };
 
@@ -153,7 +142,7 @@ function FriendModal({ isOpen, onClose }: FriendModalProps) {
         <div className="mb-6 max-h-96 overflow-y-auto">
           <h3 className="text-lg font-medium mb-4">Pending Friend Requests</h3>
           <ul className="space-y-2">
-            {pendingRequests.map((request) => (
+            {friendRequests.map((request) => (
               <li
                 key={request.id}
                 className="p-2 border border-gray-300 dark:border-gray-700 rounded-md flex items-center justify-between"
@@ -214,6 +203,6 @@ function FriendModal({ isOpen, onClose }: FriendModalProps) {
       </div>
     </div>
   );
-}
+};
 
 export default FriendModal;
