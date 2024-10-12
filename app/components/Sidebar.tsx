@@ -1,55 +1,80 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import appIcon from "./../assets/chatting.png";
+import { useUserContext } from "../context/UserContext";
+import defaultAvatar from "../assets/chatting.png";
+import { Friend, Group } from "@/types/types";
+import { PlusIcon } from '@heroicons/react/solid';
 
 interface SidebarProps {
-  onSelectChat: (chatId: string) => void;
+  onSelectChat: (chatId: Friend) => void,
+  onSelectGroup: (group: Group) => void
 }
 
-const chats = [
-  { id: 'chat1', name: 'Alice', lastMessage: 'Hey, how are you?', timestamp: '2024-08-23T10:00:00Z', unread: 2, avatar: appIcon },
-  { id: 'chat2', name: 'Bob', lastMessage: 'Let\'s meet up later.', timestamp: '2024-08-22T16:30:00Z', unread: 0, avatar: appIcon },
-];
-
-const groups = [
-  { id: 'group1', name: 'Developers', lastMessage: 'New project details!', timestamp: '2024-08-21T14:00:00Z', unread: 3, avatar: appIcon },
-  { id: 'group2', name: 'Designers', lastMessage: 'Feedback on the new design.', timestamp: '2024-08-20T09:15:00Z', unread: 1, avatar: appIcon },
-];
-
-function Sidebar({ onSelectChat }: SidebarProps) {
+function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<'chats' | 'groups'>('chats');
+  const { friends, groups, error } = useUserContext();
+  const [chats, setChats] = useState<any[]>([]); // Replace with actual type if available
 
-  const handleTabChange = (tab: 'chats' | 'groups') => {
+  const handleTabChange = async (tab: 'chats' | 'groups') => {
     setActiveTab(tab);
+    if (tab === 'chats') {
+      // Fetch and display chats
+      // For example purposes, assuming you have a method to get chats
+      // const chatRes = await getChats();
+      // if (chatRes.success) {
+      //   setChats(chatRes.chats || []);
+      // } else {
+      //   console.error(chatRes.message);
+      // }
+    } else if (tab === 'groups') {
+      // Display groups
+    }
   };
 
-  const renderList = () => {
-    const data = activeTab === 'chats' ? chats : groups;
+  useEffect(() => {
+    renderList();
+  }, [friends, groups]);
 
-    return data.map((item) => (
-      <div
-        key={item.id}
-        className="flex items-center p-2 cursor-pointer hover:bg-base-300 rounded-lg"
-        onClick={() => onSelectChat(item.id)}
-      >
-        <Image
-          src={item.avatar}
-          alt={`${item.name}'s avatar`}
-          className="w-10 h-10 rounded-full object-cover mr-3"
-        />
-        <div className="flex-1">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold">{item.name}</span>
-            {item.unread > 0 && (
-              <span className="bg-primary text-white text-xs font-bold rounded-full px-2 py-0.5">
-                {item.unread}
-              </span>
-            )}
+  const renderList = () => {
+    if (activeTab === 'chats') {
+      return friends.map((item) => (
+        <div
+          key={item.id}
+          className="flex items-center p-2 cursor-pointer hover:bg-base-300 rounded-lg"
+          onClick={() => onSelectChat(item)}
+        >
+          <Image
+            src={defaultAvatar}
+            alt={`${item.username}'s avatar`}
+            className="w-10 h-10 rounded-full object-cover mr-3"
+          />
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">{item.username}</span>
+            </div>
           </div>
-          <p className="text-sm text-gray-500">{item.lastMessage}</p>
         </div>
-      </div>
-    ));
+      ));
+    } else if (activeTab === 'groups') {
+      return groups.map((item) => (
+        <div
+          key={item.id}
+          className="flex items-center p-2 cursor-pointer hover:bg-base-300 rounded-lg"
+          onClick={() => onSelectGroup(item)}
+        >
+          <Image
+            src={defaultAvatar}
+            alt={`${item.username}'s avatar`}
+            className="w-10 h-10 rounded-full object-cover mr-3"
+          />
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">{item.username}</span>
+            </div>
+          </div>
+        </div>
+      ));
+    }
   };
 
   return (
@@ -70,6 +95,21 @@ function Sidebar({ onSelectChat }: SidebarProps) {
       </div>
 
       <div className="space-y-2">
+        {error && <p className="text-red-500">{error}</p>}
+        {activeTab === "groups" && 
+          <div
+            className="flex items-center p-2 cursor-pointer gap"
+            // onClick={() => onSelectChat(item)}
+          >
+            <PlusIcon className="w-6 h-6 text-green-500 mr-1" />
+
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-green-500">Create New Group</span>
+              </div>
+            </div>
+          </div>
+        }
         {renderList()}
       </div>
     </div>

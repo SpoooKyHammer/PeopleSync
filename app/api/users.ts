@@ -1,4 +1,4 @@
-import { Friend } from "@/types/types";
+import { Friend, FriendRequest, Group } from "@/types/types";
 import { client, setAuthToken } from "./../config/api";
 
 interface ApiResponse {
@@ -49,7 +49,7 @@ export async function loginUser(username: string, password: string): Promise<Api
 
 interface FriendsResponse {
   friends: Friend[],
-  friendRequests: Friend[]
+  friendRequests: FriendRequest[]
 }
 
 interface FriendsApiResponse extends ApiResponse, FriendsResponse {}
@@ -68,7 +68,7 @@ export async function getFriends(): Promise<FriendsApiResponse> {
   return friendsApiRes;
 }
 
-interface CreatedFriend extends ApiResponse, Friend {}
+interface CreatedFriend extends ApiResponse, FriendRequest {}
 
 /**
  * adds friend.
@@ -135,5 +135,29 @@ export async function rejectFriendRequest(username: string): Promise<CreatedFrie
     friend.message = "Friend not found";
   }
   return friend;
+}
+
+interface User {
+  id: string;
+  username: string;
+  friends: Friend[];
+  friendRequests: FriendRequest[];
+  groups: Group[];
+}
+
+/**
+ * Fetches the current user's details.
+ */
+export async function getMe(): Promise<{ success: boolean; user: User; message?: string }> {
+  try {
+    const res = await client.get("/users/me");
+    if (res.status === 200) {
+      return { success: true, user: res.data };
+    } else {
+      return { success: false, message: "Failed to fetch user data", user: {} as User };
+    }
+  } catch (error) {
+    return { success: false, message: "An error occurred", user: {} as User };
+  }
 }
 
