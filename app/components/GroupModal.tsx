@@ -1,22 +1,37 @@
 import Image from 'next/image';
-import { XIcon } from '@heroicons/react/solid';
+import { PlusIcon, XIcon } from '@heroicons/react/solid';
 import defaultAvatar from './../assets/chatting.png';
 import React, { useRef, useEffect, useState } from 'react';
 import { createGroup, addUserToGroup, removeUserFromGroup } from '@/api/group';
 import { useUserContext } from '@/context/UserContext';
+import { Friend } from '@/types/types';
+import { sortByName } from '@/utils/sorting';
 
 interface GroupManagementProps {
+  type: "create" | "edit";
   isOpen: boolean;
   onClose: () => void;
+  
 }
 
-const GroupManagement: React.FC<GroupManagementProps> = ({ isOpen, onClose }) => {
+const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const { id, groups, setGroups } = useUserContext();
+  const { id, groups, setGroups, friends } = useUserContext();
   const [groupNameInput, setGroupNameInput] = useState<string>('');
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [groupMembers, setGroupMembers] = useState<Friend[]>([]);
+  const [friendsLocal, setFriendsLocal] = useState<Friend[]>(() => [...friends]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setGroupNameInput("");
+      setGroupMembers([]);
+      setFriendsLocal([...friends]);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+    }
+  }, [isOpen, friends])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -34,28 +49,34 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ isOpen, onClose }) =>
     };
   }, [isOpen, onClose]);
 
-  // const handleCreateGroup = async () => {
-  //   setErrorMessage(null);
-  //   setSuccessMessage(null);
-  //
-  //   if (groupNameInput.trim() === '') {
-  //     setErrorMessage('Group name cannot be empty.');
-  //     return;
-  //   }
-  //
-  //   try {
-  //     const res = await createGroup(groupNameInput.trim());
-  //     if (res.success) {
-  //       setSuccessMessage('Group created successfully.');
-  //       setGroups((prevGroups) => [...prevGroups, res.group]);
-  //       setGroupNameInput('');
-  //     } else {
-  //       setErrorMessage(res.message);
-  //     }
-  //   } catch (error) {
-  //     setErrorMessage('Failed to create group.');
-  //   }
-  // };
+  const handleCreateGroup = async () => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (groupNameInput.trim() === '') {
+      setErrorMessage('Group name cannot be empty.');
+      return;
+    }
+
+    if (groupMembers.length < 2) {
+      setErrorMessage("Add atleast 2 or more members");
+      return;
+    }
+
+    try {
+      const memberIds = groupMembers.map(member => member.id);
+      const res = await createGroup(groupNameInput.trim(), [id].concat(memberIds));
+      if (res.success) {
+        setSuccessMessage('Group created successfully.');
+        setGroups((prevGroups) => [...prevGroups, { username: res.name, id: res._id }]);
+        setGroupNameInput('');
+      } else {
+        setErrorMessage(res.message);
+      }
+    } catch (error) {
+      setErrorMessage('Failed to create group.');
+    }
+  };
 
   // const handleDeleteGroup = async (groupId: string) => {
   //   try {
@@ -71,31 +92,48 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ isOpen, onClose }) =>
   //   }
   // };
 
-  // const handleAddMember = async (groupId: string, userId: string) => {
-  //   try {
-  //     const res = await addUserToGroup(groupId, userId);
-  //     if (res.success) {
-  //       setSuccessMessage('Member added successfully.');
-  //     } else {
-  //       setErrorMessage(res.message);
-  //     }
-  //   } catch (error) {
-  //     setErrorMessage('Failed to add member.');
-  //   }
-  // };
-  //
-  // const handleRemoveMember = async (groupId: string, username: string) => {
-  //   try {
-  //     const res = await removeGroupMember(groupId, username);
-  //     if (res.success) {
-  //       setSuccessMessage('Member removed successfully.');
-  //     } else {
-  //       setErrorMessage(res.message);
-  //     }
-  //   } catch (error) {
-  //     setErrorMessage('Failed to remove member.');
-  //   }
-  // };
+  const handleAddMember = (member: Friend) => {
+    setGroupMembers((prev) => sortByName([...prev, member]));
+    setFriendsLocal((prev) => sortByName(prev.filter(friend => friend.id !== member.id)));
+  };
+
+  const handleRemoveMember = (member: Friend) => {
+    setGroupMembers((prev) => sortByName(prev.filter(friend => friend.id !== member.id)));
+    setFriendsLocal((prev) => sortByName([...prev, member]));
+  };
+
+  const renderList = (type: "add" | "remove", title: string, items: Friend[], onButtonClick: (member: Friend) => void) => {
+    return (
+      <div className="mb-4 max-h-96 overflow-y-auto">
+        <h3 className="text-lg font-medium mb-2">{title}</h3>
+        <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-md">
+          <ul className="space-y-2">
+            {items.map((friend) => (
+              <li
+                key={friend.id}
+                className="p-2 border border-gray-300 dark:border-gray-700 rounded-md flex items-center justify-between"
+              >
+                <div className="flex items-center space-x-3">
+                  <Image
+                    src={defaultAvatar}
+                    alt={`${friend.username}'s avatar`}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <span>{friend.username}</span>
+                </div>
+                <button
+                  className="text-red-500 hover:text-red-700"
+                  onClick={() => onButtonClick(friend)}
+                >
+                  {type === "remove" ? <XIcon className="w-5 h-5 text-red-500 hover:text-red-700" /> : <PlusIcon className="w-5 h-5 text-green-500 hover:text-green-700" /> }
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    )
+  }
 
   if (!isOpen) return null;
 
@@ -105,66 +143,35 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ isOpen, onClose }) =>
         ref={modalRef}
         className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-8 rounded-lg shadow-lg w-full max-w-lg"
       >
-        <h2 className="text-2xl font-semibold mb-6">Group Management</h2>
-
-        {/* Section for Viewing Groups */}
-        <div className="mb-6 max-h-96 overflow-y-auto">
-          <h3 className="text-lg font-medium mb-4">Groups</h3>
-          <ul className="space-y-2">
-            {groups.map((group) => (
-              <li
-                key={group.id}
-                className="p-2 border border-gray-300 dark:border-gray-700 rounded-md flex items-center justify-between"
-              >
-                <div className="flex items-center space-x-3">
-                  <Image
-                    src={defaultAvatar}
-                    alt={`${group.username} avatar`}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                  <span>{group.username}</span>
-                </div>
-                <button
-                  className="text-red-500 hover:text-red-700"
-                  //onClick={() => handleDeleteGroup(group.id)}
-                >
-                  <XIcon className="w-5 h-5" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <h2 className="text-2xl font-semibold mb-3">Group Management</h2>
 
         {/* Section for Creating Group */}
-        <div className="mb-6">
-          <h3 className="text-lg font-medium mb-4">Create New Group</h3>
+        <div className="mb-4">
           <input
             type="text"
             placeholder="Enter group name"
-            className="input input-bordered w-full mb-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-md"
+            className="input input-bordered w-full mb-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 rounded-md"
             value={groupNameInput}
             onChange={(e) => setGroupNameInput(e.target.value)}
           />
-          <button
-            className="btn btn-primary w-full"
-            // onClick={handleCreateGroup}
-          >
-            Create Group
-          </button>
           {errorMessage && <p className="text-red-500 mt-2">{errorMessage}</p>}
           {successMessage && <p className="text-green-500 mt-2">{successMessage}</p>}
         </div>
 
         {/* Section for Adding/Removing Group Members */}
-        {selectedGroup && (
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-4">Manage Members for {selectedGroup}</h3>
-            {/* Add member input and actions could go here */}
-          </div>
-        )}
-
+        <div className="mb-4">
+          {renderList("remove", "Members", groupMembers, handleRemoveMember)}
+          {renderList("add", "Friends List", friendsLocal, handleAddMember)}
+        </div>
+        
         <button
-          className="btn btn-error mt-4 w-full"
+            className="btn btn-primary w-full"
+            onClick={handleCreateGroup}
+          >
+            {type === "create" ? "Create" : "Save"}
+        </button>
+        <button
+          className="btn btn-error mt-2 w-full"
           onClick={onClose}
         >
           Close

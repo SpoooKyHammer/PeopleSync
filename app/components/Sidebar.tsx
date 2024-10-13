@@ -3,21 +3,24 @@ import Image from "next/image";
 import { useUserContext } from "../context/UserContext";
 import defaultAvatar from "../assets/chatting.png";
 import { Friend, Group } from "@/types/types";
-import { PlusIcon } from '@heroicons/react/solid';
+import { PlusIcon, PencilIcon } from '@heroicons/react/solid';
+import GroupManagement from "./GroupModal";
 
 interface SidebarProps {
-  onSelectChat: (chatId: Friend) => void,
-  onSelectGroup: (group: Group) => void
+  onSelectChat: (chatId: Friend | null) => void,
+  onSelectGroup: (group: Group | null) => void
 }
 
 function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<'chats' | 'groups'>('chats');
+  const [open, setOpen] = useState(false);
   const { friends, groups, error } = useUserContext();
   const [chats, setChats] = useState<any[]>([]); // Replace with actual type if available
 
   const handleTabChange = async (tab: 'chats' | 'groups') => {
     setActiveTab(tab);
     if (tab === 'chats') {
+      onSelectGroup(null);
       // Fetch and display chats
       // For example purposes, assuming you have a method to get chats
       // const chatRes = await getChats();
@@ -28,6 +31,7 @@ function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
       // }
     } else if (tab === 'groups') {
       // Display groups
+      onSelectChat(null);
     }
   };
 
@@ -37,9 +41,9 @@ function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
 
   const renderList = () => {
     if (activeTab === 'chats') {
-      return friends.map((item) => (
+      return friends.map((item, index) => (
         <div
-          key={item.id}
+          key={index}
           className="flex items-center p-2 cursor-pointer hover:bg-base-300 rounded-lg"
           onClick={() => onSelectChat(item)}
         >
@@ -56,20 +60,22 @@ function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
         </div>
       ));
     } else if (activeTab === 'groups') {
-      return groups.map((item) => (
-        <div
-          key={item.id}
-          className="flex items-center p-2 cursor-pointer hover:bg-base-300 rounded-lg"
-          onClick={() => onSelectGroup(item)}
-        >
-          <Image
-            src={defaultAvatar}
-            alt={`${item.username}'s avatar`}
-            className="w-10 h-10 rounded-full object-cover mr-3"
-          />
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold">{item.username}</span>
+      return groups.map((item, index) => (
+        <div>
+          <div
+            key={index}
+            className="flex items-center p-2 cursor-pointer hover:bg-base-300 rounded-lg"
+            onClick={() => onSelectGroup(item)}
+          >
+            <Image
+              src={defaultAvatar}
+              alt={`${item.username}'s avatar`}
+              className="w-10 h-10 rounded-full object-cover mr-3"
+            />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">{item.username}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -99,7 +105,7 @@ function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
         {activeTab === "groups" && 
           <div
             className="flex items-center p-2 cursor-pointer gap"
-            // onClick={() => onSelectChat(item)}
+            onClick={() => setOpen(true)}
           >
             <PlusIcon className="w-6 h-6 text-green-500 mr-1" />
 
@@ -112,6 +118,8 @@ function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
         }
         {renderList()}
       </div>
+
+      <GroupManagement type="create" isOpen={open} onClose={() => setOpen(false)} />
     </div>
   );
 }

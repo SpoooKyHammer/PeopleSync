@@ -6,6 +6,9 @@ import appIcon from "../assets/chatting.png";
 import { Friend, Group } from "@/types/types";
 import { getMessages } from "@/api/chat";
 import { sendMessage } from "@/api/message";
+import defaultAvatar from "../assets/chatting.png";
+import { PencilIcon } from "@heroicons/react/solid";
+import GroupManagement from "./GroupModal";
 
 interface ChatAreaProps {
   selectedChat?: Friend,
@@ -28,6 +31,8 @@ export default function ChatArea({ selectedChat, selectedGroup }: ChatAreaProps)
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const { username } = useUserContext();
+  const [openGroupManagement, setOpenGroupManagement] = useState(false);
+  const [groupMembers, setGroupMembers] = useState<Friend[]>([]);
 
   const fetchMessage = async () => {
     if (selectedChat) {
@@ -74,12 +79,10 @@ export default function ChatArea({ selectedChat, selectedGroup }: ChatAreaProps)
   }, []);
 
   const handleSend = async () => {
-    // Add logic to send the message
-    if (selectedChat) await sendMessage({ content: message, chat: selectedChat.id });
+    if (selectedChat) await sendMessage({ content: message, chat: selectedChat.chatId });
     else if (selectedGroup) await sendMessage({ content: message, group: selectedGroup.id });
 
     await fetchMessage();
-    console.log("Sending message:", message);
     setMessage("");
   };
 
@@ -90,8 +93,16 @@ export default function ChatArea({ selectedChat, selectedGroup }: ChatAreaProps)
   return (
     <div className="flex flex-col h-full bg-base-100 relative">
       <div className="flex-1 overflow-y-auto p-4 mb-20">
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold">Chat {selectedChat ? selectedChat.username : selectedGroup ? selectedGroup.username : ""}</h1>
+        <div className="mb-4 flex items-center gap-2">
+          <Image
+            src={defaultAvatar}
+            alt={`avatar`}
+            className="w-8 h-8 rounded-full object-cover mr-3"
+          />
+          <h1 className="text-xl font-bold">Chat with {selectedChat ? selectedChat.username : selectedGroup ? selectedGroup.username : ""}</h1>
+          <button type="button" onClick={() => setOpenGroupManagement(true)}>
+            <PencilIcon className="w-6 h-6 text-blue-500 mr-1" />
+          </button>
         </div>
         {messages.map(msg => (
           <div
@@ -136,6 +147,8 @@ export default function ChatArea({ selectedChat, selectedGroup }: ChatAreaProps)
         </button>
         <button className="text-xl">📎</button>
       </div>
+
+      <GroupManagement type="edit" isOpen={openGroupManagement} onClose={() => setOpenGroupManagement(false)} />
     </div>
   );
 }

@@ -1,5 +1,3 @@
-import { Friend } from "@/types/types";
-
-export const sortFriends = (items: Friend[]): Friend[] => {
+export const sortByName = <T extends { username: string }>(items: T[]): T[] => {
   return items.sort((a, b) => a.username.localeCompare(b.username));
 };
