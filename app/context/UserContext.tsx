@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Friend, FriendRequest, Group } from '@/types/types';
-import { getMe } from '@/api/users'; // Ensure you have these API methods
+import { getMe } from '@/api/users';
 import { sortByName } from '@/utils/sorting';
 import Spinner from '@/components/Spinner';
 
