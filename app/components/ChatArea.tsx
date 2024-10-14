@@ -100,9 +100,11 @@ export default function ChatArea({ selectedChat, selectedGroup }: ChatAreaProps)
             className="w-8 h-8 rounded-full object-cover mr-3"
           />
           <h1 className="text-xl font-bold">Chat with {selectedChat ? selectedChat.username : selectedGroup ? selectedGroup.username : ""}</h1>
-          <button type="button" onClick={() => setOpenGroupManagement(true)}>
-            <PencilIcon className="w-6 h-6 text-blue-500 mr-1" />
-          </button>
+          {selectedGroup &&
+            <button type="button" onClick={() => setOpenGroupManagement(true)}>
+              <PencilIcon className="w-6 h-6 text-blue-500 mr-1" />
+            </button>
+          }
         </div>
         {messages.map(msg => (
           <div
@@ -148,7 +150,7 @@ export default function ChatArea({ selectedChat, selectedGroup }: ChatAreaProps)
         <button className="text-xl">📎</button>
       </div>
 
-      <GroupManagement type="edit" isOpen={openGroupManagement} onClose={() => setOpenGroupManagement(false)} />
+      <GroupManagement type="edit" selectedGroup={selectedGroup} isOpen={openGroupManagement} onClose={() => setOpenGroupManagement(false)} />
     </div>
   );
 }
