@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useUserContext } from "../context/UserContext";
 import defaultAvatar from "../assets/chatting.png";
 import { Friend, Group } from "@/types/types";
-import { PlusIcon, PencilIcon } from '@heroicons/react/solid';
+import { PlusIcon } from '@heroicons/react/solid';
 import GroupManagement from "./GroupModal";
 
 interface SidebarProps {
