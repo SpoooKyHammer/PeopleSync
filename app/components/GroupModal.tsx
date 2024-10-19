@@ -4,34 +4,44 @@ import defaultAvatar from './../assets/chatting.png';
 import React, { useRef, useEffect, useState } from 'react';
 import { createGroup, addUserToGroup, removeUserFromGroup } from '@/api/group';
 import { useUserContext } from '@/context/UserContext';
-import { Friend } from '@/types/types';
+import { FriendRequest, Group } from '@/types/types';
 import { sortByName } from '@/utils/sorting';
 
 interface GroupManagementProps {
   type: "create" | "edit";
   isOpen: boolean;
   onClose: () => void;
-  
+  selectedGroup?: Group;
+  setSelectGroup?: (group: Group | null) => void 
 }
 
-const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose }) => {
+const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose, selectedGroup, setSelectGroup }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const { id, groups, setGroups, friends } = useUserContext();
-  const [groupNameInput, setGroupNameInput] = useState<string>('');
-  const [groupMembers, setGroupMembers] = useState<Friend[]>([]);
-  const [friendsLocal, setFriendsLocal] = useState<Friend[]>(() => [...friends]);
+  const [groupNameInput, setGroupNameInput] = useState<string>("");
+  const [groupMembers, setGroupMembers] = useState<FriendRequest[]>([]);
+  const [friendsLocal, setFriendsLocal] = useState<FriendRequest[]>([...friends] as FriendRequest[]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      if (type === "edit" && selectedGroup) {
+        setGroupNameInput(selectedGroup.username);
+        setGroupMembers(selectedGroup.participants.filter(p => p.id !== id));
+        const memberIdsSet = new Set(selectedGroup.participants.map(p => p.id));
+        setFriendsLocal(friends.filter(f => !memberIdsSet.has(f.id)));
+      }    
+    } else {
+      // Reset state when modal is closed
       setGroupNameInput("");
       setGroupMembers([]);
       setFriendsLocal([...friends]);
       setErrorMessage(null);
       setSuccessMessage(null);
     }
-  }, [isOpen, friends])
+  }, [isOpen, friends, type, selectedGroup])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -64,17 +74,62 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose
     }
 
     try {
+      setLoading(true);
       const memberIds = groupMembers.map(member => member.id);
       const res = await createGroup(groupNameInput.trim(), [id].concat(memberIds));
       if (res.success) {
         setSuccessMessage('Group created successfully.');
-        setGroups((prevGroups) => [...prevGroups, { username: res.name, id: res._id }]);
+        setGroups((prevGroups) => [...prevGroups, { username: res.name, id: res._id, participants: groupMembers }]);
         setGroupNameInput('');
       } else {
         setErrorMessage(res.message);
       }
     } catch (error) {
       setErrorMessage('Failed to create group.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditGroup = async () => {
+    if (!selectedGroup) return;
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setLoading(true);
+
+    const originalParticipantIds = new Set(selectedGroup.participants.map(p => p.id));
+    const groupMemberIds = new Set(groupMembers.map(m => m.id));
+    groupMemberIds.add(id);
+
+    const newMembers = groupMembers.filter(m => !originalParticipantIds.has(m.id));
+
+    const removedMembers = selectedGroup.participants.filter(p => !groupMemberIds.has(p.id));
+
+    try {
+      const removeRes = await Promise.all(removedMembers.map(m => removeUserFromGroup(selectedGroup.id, m.id)));
+      
+      const addRes = await Promise.all(newMembers.map(m => addUserToGroup(selectedGroup.id, m.id)));
+      
+      const removedMemberIdsSet = new Set(removedMembers.map(m => m.id));
+      const updatedGroupMembers = groupMembers.filter(m => !removedMemberIdsSet.has(m.id));
+
+      const lastRemoveRes = removeRes.length > 0 ? removeRes[removeRes.length - 1] : null;
+      const lastAddRes = addRes.length > 0 ? addRes[addRes.length - 1] : null;
+      
+      const res = lastAddRes ?? lastRemoveRes;
+      
+      if (res) {
+        setGroups((prevGroups) => {
+          const grps = [...prevGroups].filter(g => g.id !== selectedGroup.id);
+          setSelectGroup && setSelectGroup({ id: res._id, username: res.name, participants: updatedGroupMembers });
+          return grps.concat({ id: res._id, username: res.name, participants: updatedGroupMembers });
+        });
+      }
+    } catch (error) {
+      setErrorMessage("Failed to save changes, try again");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,17 +147,19 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose
   //   }
   // };
 
-  const handleAddMember = (member: Friend) => {
+  const handleAddMember = (member: FriendRequest) => {
+    //TO-do make it to work for edit group
     setGroupMembers((prev) => sortByName([...prev, member]));
     setFriendsLocal((prev) => sortByName(prev.filter(friend => friend.id !== member.id)));
   };
 
-  const handleRemoveMember = (member: Friend) => {
+  const handleRemoveMember = (member: FriendRequest) => {
+    //TO-do make it to work for edit group
     setGroupMembers((prev) => sortByName(prev.filter(friend => friend.id !== member.id)));
     setFriendsLocal((prev) => sortByName([...prev, member]));
   };
 
-  const renderList = (type: "add" | "remove", title: string, items: Friend[], onButtonClick: (member: Friend) => void) => {
+  const renderList = (type: "add" | "remove", title: string, items: FriendRequest[], onButtonClick: (member: FriendRequest) => void) => {
     return (
       <div className="mb-4 max-h-96 overflow-y-auto">
         <h3 className="text-lg font-medium mb-2">{title}</h3>
@@ -165,15 +222,19 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose
         </div>
         
         <button
-            className="btn btn-primary w-full"
-            onClick={handleCreateGroup}
-          >
-            {type === "create" ? "Create" : "Save"}
+          className="btn btn-primary w-full"
+          onClick={type === "create" ? handleCreateGroup : handleEditGroup}
+          disabled={loading}
+        >
+          {loading && <span className="loading loading-spinner"></span>}
+          {type === "create" ? "Create" : "Save"}
         </button>
         <button
           className="btn btn-error mt-2 w-full"
           onClick={onClose}
+          disabled={loading}
         >
+          {loading && <span className="loading loading-spinner"></span>}
           Close
         </button>
       </div>

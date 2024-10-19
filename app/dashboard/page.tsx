@@ -31,7 +31,7 @@ export default function Dashboard() {
             {selectedChat ? (
               <ChatArea selectedChat={selectedChat} />
             ) : selectedGroup ? (
-              <ChatArea selectedGroup={selectedGroup} />
+              <ChatArea selectedGroup={selectedGroup} setSelectedGroup={setSelectedGroup} />
             ) : 
             (
               <div className="flex items-center justify-center h-full">

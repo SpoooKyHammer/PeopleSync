@@ -12,7 +12,8 @@ import GroupManagement from "./GroupModal";
 
 interface ChatAreaProps {
   selectedChat?: Friend,
-  selectedGroup?: Group
+  selectedGroup?: Group,
+  setSelectedGroup?: (group: Group | null) => void
 }
 
 interface Message {
@@ -25,7 +26,7 @@ interface Message {
     timestamp: Date
 }
 
-export default function ChatArea({ selectedChat, selectedGroup }: ChatAreaProps) {
+export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup }: ChatAreaProps) {
   const [message, setMessage] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
@@ -150,7 +151,7 @@ export default function ChatArea({ selectedChat, selectedGroup }: ChatAreaProps)
         <button className="text-xl">📎</button>
       </div>
 
-      <GroupManagement type="edit" selectedGroup={selectedGroup} isOpen={openGroupManagement} onClose={() => setOpenGroupManagement(false)} />
+      <GroupManagement type="edit" selectedGroup={selectedGroup} setSelectGroup={setSelectedGroup} isOpen={openGroupManagement} onClose={() => setOpenGroupManagement(false)} />
     </div>
   );
 }

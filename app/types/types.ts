@@ -7,4 +7,6 @@ export interface Friend extends FriendRequest {
   chatId: string
 }
 
-export interface Group extends FriendRequest {}
+export interface Group extends FriendRequest {
+  participants: FriendRequest[]
+}
