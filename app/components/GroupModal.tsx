@@ -111,9 +111,6 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose
       
       const addRes = await Promise.all(newMembers.map(m => addUserToGroup(selectedGroup.id, m.id)));
       
-      const removedMemberIdsSet = new Set(removedMembers.map(m => m.id));
-      const updatedGroupMembers = groupMembers.filter(m => !removedMemberIdsSet.has(m.id));
-
       const lastRemoveRes = removeRes.length > 0 ? removeRes[removeRes.length - 1] : null;
       const lastAddRes = addRes.length > 0 ? addRes[addRes.length - 1] : null;
       
@@ -122,8 +119,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose
       if (res) {
         setGroups((prevGroups) => {
           const grps = [...prevGroups].filter(g => g.id !== selectedGroup.id);
-          setSelectGroup && setSelectGroup({ id: res._id, username: res.name, participants: updatedGroupMembers });
-          return grps.concat({ id: res._id, username: res.name, participants: updatedGroupMembers });
+          setSelectGroup && setSelectGroup({ id: res._id, username: res.name, participants: groupMembers });
+          return grps.concat({ id: res._id, username: res.name, participants: groupMembers });
         });
       }
     } catch (error) {
@@ -148,13 +145,11 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose
   // };
 
   const handleAddMember = (member: FriendRequest) => {
-    //TO-do make it to work for edit group
     setGroupMembers((prev) => sortByName([...prev, member]));
     setFriendsLocal((prev) => sortByName(prev.filter(friend => friend.id !== member.id)));
   };
 
   const handleRemoveMember = (member: FriendRequest) => {
-    //TO-do make it to work for edit group
     setGroupMembers((prev) => sortByName(prev.filter(friend => friend.id !== member.id)));
     setFriendsLocal((prev) => sortByName([...prev, member]));
   };
