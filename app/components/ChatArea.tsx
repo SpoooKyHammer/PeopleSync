@@ -82,6 +82,8 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
   }, []);
 
   const handleSend = async () => {
+    if (message.length <= 0) return;
+
     if (selectedChat) await sendMessage({ content: message, chat: selectedChat.chatId });
     else if (selectedGroup) await sendMessage({ content: message, group: selectedGroup.id });
 
