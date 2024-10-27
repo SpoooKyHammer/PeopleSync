@@ -117,7 +117,7 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
   return (
     <div className="flex flex-col h-full bg-base-100 relative">
       <div className="flex-1 overflow-y-auto p-4 mb-20">
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 flex items-center gap-2 fixed">
           <Image
             src={defaultAvatar}
             alt={`avatar`}
