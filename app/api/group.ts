@@ -69,3 +69,18 @@ export async function removeUserFromGroup(groupId: string, userId: string): Prom
   }
   return response;
 }
+
+/**
+ * Retrieves messages for a specific group ID.
+ */
+export async function getGroupMessages(id: string): Promise<ApiResponse & { messages: any[] }> {
+  const response: ApiResponse & { messages: any[] } = { success: false, message: "Something went wrong", messages: [] };
+  const res = await client.get(`/groups/${id}/messages`);
+
+  if (res.status === 200) {
+    response.success = true;
+    response.messages = res.data;
+  }
+  return response;
+}
+

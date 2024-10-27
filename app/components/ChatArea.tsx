@@ -9,6 +9,7 @@ import { sendMessage } from "@/api/message";
 import defaultAvatar from "../assets/chatting.png";
 import { PencilIcon } from "@heroicons/react/solid";
 import GroupManagement from "./GroupModal";
+import { getGroupMessages } from "@/api/group";
 
 interface ChatAreaProps {
   selectedChat?: Friend,
@@ -31,7 +32,7 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
   const [messages, setMessages] = useState<Message[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
-  const { username } = useUserContext();
+  const { username, id } = useUserContext();
   const [openGroupManagement, setOpenGroupManagement] = useState(false);
   const [groupMembers, setGroupMembers] = useState<Friend[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -60,33 +61,14 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
       const res = await getMessages(selectedChat.chatId);
       setMessages(res.messages);
     } else if (selectedGroup) {
-      const res = "get group messages and display them here";
-      // setMessages(res.messages);
+      const res = await getGroupMessages(selectedGroup.id);
+      setMessages(res.messages);
     }
   }
 
   useEffect(() => {
     fetchMessage();
   }, [selectedChat, selectedGroup])
-
-  // Dummy data, replace with real data from API
-  // const dummyMessages = {
-  //   chat1: [
-  //     { id: '1', text: 'Hello! How are you?', sender: 'Alice', timestamp: '10:00 AM' },
-  //     { id: '2', text: 'I am good, thanks! How about you?', sender: 'You', timestamp: '10:05 AM' },
-  //   ],
-  //   chat2: [
-  //     { id: '1', text: 'Let\'s meet up later.', sender: 'Bob', timestamp: '02:30 PM' },
-  //   ],
-  //   group1: [
-  //     { id: '1', text: 'New project details!', sender: 'Admin', timestamp: '11:00 AM' },
-  //   ],
-  //   group2: [
-  //     { id: '1', text: 'Feedback on the new design.', sender: 'Admin', timestamp: '09:30 AM' },
-  //   ],
-  // };
-  //
-  // const messages = selectedChatId ? dummyMessages[selectedChatId] || [] : [];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -116,8 +98,8 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
 
   return (
     <div className="flex flex-col h-full bg-base-100 relative">
-      <div className="flex-1 overflow-y-auto p-4 mb-20">
-        <div className="mb-4 flex items-center gap-2 fixed">
+      <div className="flex-1 overflow-y-auto p-4 mb-20 pt-16">
+        <div className="mb-4 flex items-center gap-2 absolute top-0 left-0 right-0 bg-base-100 p-4 z-10">
           <Image
             src={defaultAvatar}
             alt={`avatar`}
@@ -133,14 +115,21 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
         {messages.map(msg => (
           <div
             key={msg._id}
-            className={`chat ${msg.sender.username === username ? 'chat-end' : 'chat-start'}`}
+            className={`chat ${msg.sender._id === id ? 'chat-end' : 'chat-start'}`}
           >
+            {selectedGroup && msg.sender._id !== id &&
+              <div className="chat-header opacity-50">
+                {msg.sender.username}
+              </div>
+            }
             <div className="chat-image avatar">
               <div className="w-10 rounded-full">
               <Image src={appIcon} alt="User Avatar" />
               </div>
             </div>
-            <div className={`chat-bubble max-w-xl whitespace-normal break-words ${msg.sender.username === username ? 'chat-bubble-primary' : ''}`}>{msg.content}</div>
+            <div className={`chat-bubble max-w-xl whitespace-normal break-words ${msg.sender.username === username ? 'chat-bubble-primary' : ''}`}>
+              {msg.content}
+            </div>
           </div>
         ))}
         <div ref={messagesEndRef} />
