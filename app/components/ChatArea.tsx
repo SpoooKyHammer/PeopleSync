@@ -34,6 +34,26 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
   const { username } = useUserContext();
   const [openGroupManagement, setOpenGroupManagement] = useState(false);
   const [groupMembers, setGroupMembers] = useState<Friend[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    if (textareaRef.current) {
+      e.target.style.height = "auto";
+      e.target.style.height = `${e.target.scrollHeight}px`;
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   const fetchMessage = async () => {
     if (selectedChat) {
@@ -85,6 +105,9 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
 
     await fetchMessage();
     setMessage("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
   };
 
   const handleEmojiClick = (emoji: any) => {
@@ -117,9 +140,10 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
               <Image src={appIcon} alt="User Avatar" />
               </div>
             </div>
-            <div className={`chat-bubble ${msg.sender.username === username ? 'chat-bubble-primary' : ''}`}>{msg.content}</div>
+            <div className={`chat-bubble max-w-xl whitespace-normal break-words ${msg.sender.username === username ? 'chat-bubble-primary' : ''}`}>{msg.content}</div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
       <div className="absolute bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 flex items-center p-2 space-x-2">
         <button
@@ -136,11 +160,13 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
             <EmojiPicker onEmojiClick={handleEmojiClick} />
           </div>
         )}
-        <input
-          type="text"
-          className="flex-1 border rounded-lg px-4 py-2 text-sm"
+        <textarea
+          ref={textareaRef}
+          className="flex-1 border rounded-lg px-4 py-2 text-sm resize-y min-h-[40px] max-h-32"
+          rows={1}
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={handleInputChange}
+          placeholder="Type a message..."
         />
         <button
           className="bg-primary text-white rounded-lg px-4 py-2"
