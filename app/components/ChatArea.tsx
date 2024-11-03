@@ -10,6 +10,7 @@ import defaultAvatar from "../assets/chatting.png";
 import { PencilIcon } from "@heroicons/react/solid";
 import GroupManagement from "./GroupModal";
 import { getGroupMessages } from "@/api/group";
+import io, { Socket } from "socket.io-client";
 
 interface ChatAreaProps {
   selectedChat?: Friend,
@@ -37,6 +38,7 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
   const [groupMembers, setGroupMembers] = useState<Friend[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const socket = useRef<Socket | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
@@ -68,6 +70,24 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
 
   useEffect(() => {
     fetchMessage();
+    
+    socket.current = io(process.env.NEXT_PUBLIC_BASE_SOCKET_URL);
+
+    if (selectedChat) {
+      socket.current.emit("joinChat", selectedChat.chatId);
+    }
+
+    if (selectedGroup) {
+      socket.current.emit("joinChat", selectedGroup.id);
+    }
+
+    socket.current.on("newMessage", (message) => {
+      setMessages((prevMessages) => [...prevMessages, message]);
+    });
+
+    return () => {
+      socket.current?.disconnect();
+    };
   }, [selectedChat, selectedGroup])
 
   useEffect(() => {
@@ -86,8 +106,7 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
 
     if (selectedChat) await sendMessage({ content: message, chat: selectedChat.chatId });
     else if (selectedGroup) await sendMessage({ content: message, group: selectedGroup.id });
-
-    await fetchMessage();
+    
     setMessage("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
