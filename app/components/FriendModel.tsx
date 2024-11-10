@@ -78,7 +78,7 @@ const FriendModal: React.FC<FriendModalProps> = ({ isOpen, onClose }) => {
         const chat = await createChat([id, res.id]);
         setSuccessMessage('Friend request accepted.');
         setFriendRequests((prevRequests) => sortByName(prevRequests.filter((r) => r.username !== username)));
-        setFriends((prevFriends) => sortByName([...prevFriends, { id: res.id, username: res.username, chatId: chat._id }]));
+        setFriends((prevFriends) => sortByName([...prevFriends, { id: res.id, username: res.username, chatId: chat._id, unreadMessageCount: 0 }]));
       } else {
         setErrorMessage(res.message);
       }

@@ -5,6 +5,7 @@ import defaultAvatar from "../assets/chatting.png";
 import { Friend, Group } from "@/types/types";
 import { PlusIcon } from '@heroicons/react/solid';
 import GroupManagement from "./GroupModal";
+import { isNumber } from "util";
 
 interface SidebarProps {
   onSelectChat: (chatId: Friend | null) => void,
@@ -14,8 +15,7 @@ interface SidebarProps {
 function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<'chats' | 'groups'>('chats');
   const [open, setOpen] = useState(false);
-  const { friends, groups, error } = useUserContext();
-  const [chats, setChats] = useState<any[]>([]); // Replace with actual type if available
+  const { friends, groups, error, setOpenChat } = useUserContext();
 
   const handleTabChange = async (tab: 'chats' | 'groups') => {
     setActiveTab(tab);
@@ -45,7 +45,10 @@ function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
         <div
           key={index}
           className="flex items-center p-2 cursor-pointer hover:bg-base-300 rounded-lg"
-          onClick={() => onSelectChat(item)}
+          onClick={() => {
+            onSelectChat(item);
+            setOpenChat(item.chatId);
+          }}
         >
           <Image
             src={defaultAvatar}
@@ -55,6 +58,7 @@ function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <span className="font-semibold">{item.username}</span>
+              {item.unreadMessageCount > 0 && <span className="indicator-item indicator-middle badge badge-primary">{item.unreadMessageCount}+</span>}
             </div>
           </div>
         </div>
@@ -65,7 +69,10 @@ function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
           <div
             key={index}
             className="flex items-center p-2 cursor-pointer hover:bg-base-300 rounded-lg"
-            onClick={() => onSelectGroup(item)}
+            onClick={() => {
+              onSelectGroup(item);
+              setOpenChat(item.id);
+            }}
           >
             <Image
               src={defaultAvatar}
@@ -75,6 +82,7 @@ function Sidebar({ onSelectChat, onSelectGroup }: SidebarProps) {
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">{item.username}</span>
+                {item.unreadMessageCount > 0 && <span className="indicator-item indicator-middle badge badge-primary">{item.unreadMessageCount}+</span>}
               </div>
             </div>
           </div>

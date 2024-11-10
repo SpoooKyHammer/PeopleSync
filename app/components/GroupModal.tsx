@@ -79,7 +79,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose
       const res = await createGroup(groupNameInput.trim(), [id].concat(memberIds));
       if (res.success) {
         setSuccessMessage('Group created successfully.');
-        setGroups((prevGroups) => [...prevGroups, { username: res.name, id: res._id, participants: groupMembers }]);
+        setGroups((prevGroups) => [...prevGroups, { username: res.name, id: res._id, participants: groupMembers, unreadMessageCount: 0 }]);
         setGroupNameInput('');
       } else {
         setErrorMessage(res.message);
@@ -119,8 +119,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ type, isOpen, onClose
       if (res) {
         setGroups((prevGroups) => {
           const grps = [...prevGroups].filter(g => g.id !== selectedGroup.id);
-          setSelectGroup && setSelectGroup({ id: res._id, username: res.name, participants: groupMembers });
-          return grps.concat({ id: res._id, username: res.name, participants: groupMembers });
+          setSelectGroup && setSelectGroup({ id: res._id, username: res.name, participants: groupMembers, unreadMessageCount: 0 });
+          return grps.concat({ id: res._id, username: res.name, participants: groupMembers, unreadMessageCount: 0 });
         });
       }
     } catch (error) {

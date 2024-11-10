@@ -18,14 +18,16 @@ interface ChatAreaProps {
   setSelectedGroup?: (group: Group | null) => void
 }
 
-interface Message {
+export interface Message {
     _id: string,
     sender: {
       _id: string,
       username: string
     },
     content: string,
-    timestamp: Date
+    timestamp: Date,
+    chat?: string,
+    group?: string
 }
 
 export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup }: ChatAreaProps) {
@@ -33,7 +35,7 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
   const [messages, setMessages] = useState<Message[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
-  const { username, id } = useUserContext();
+  const { username, id, hasSeenMessage, addMessageToSeen, setFriends, setGroups } = useUserContext();
   const [openGroupManagement, setOpenGroupManagement] = useState(false);
   const [groupMembers, setGroupMembers] = useState<Friend[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -64,7 +66,15 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
       setMessages(res.messages);
     } else if (selectedGroup) {
       const res = await getGroupMessages(selectedGroup.id);
-      setMessages(res.messages);
+      const newMessages = res.messages.filter((m: Message) => {
+        if (id === m.sender._id) return true;
+        if (hasSeenMessage(m.content, m.sender._id, selectedGroup.id)) return false;
+        else {
+          addMessageToSeen(m.content, m.sender._id, selectedGroup.id);
+          return true;
+        }
+      });
+      setMessages(newMessages);
     }
   }
 
@@ -75,14 +85,42 @@ export default function ChatArea({ selectedChat, selectedGroup, setSelectedGroup
 
     if (selectedChat) {
       socket.current.emit("joinChat", selectedChat.chatId);
+      setFriends((prevFriends) => {
+        return prevFriends.map((f) => {
+          if (f.chatId === selectedChat.chatId) {
+            return {
+              ...f,
+              unreadMessageCount: 0,
+            };
+          }
+          return f;
+        });
+      });
     }
 
     if (selectedGroup) {
       socket.current.emit("joinChat", selectedGroup.id);
+      setGroups((prev) => {
+        return prev.map((g) => {
+          if (g.id === selectedGroup.id) {
+            return {
+              ...g,
+              unreadMessageCount: 0,
+            };
+          }
+          return g;
+        });
+      });
+
     }
 
-    socket.current.on("newMessage", (message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
+    socket.current.on("newMessage", (m: Message) => {
+      if (selectedChat) {
+        setMessages((prev) => [...prev, m]);
+      }
+      else if (selectedGroup && (m.sender._id === id || !hasSeenMessage(m.content, m.sender._id, selectedGroup.id))) {
+        setMessages((prevMessages) => [...prevMessages, m]);
+      }
     });
 
     return () => {

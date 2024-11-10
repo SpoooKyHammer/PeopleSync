@@ -4,9 +4,11 @@ export interface FriendRequest {
 }
 
 export interface Friend extends FriendRequest {
-  chatId: string
+  chatId: string,
+  unreadMessageCount: number
 }
 
 export interface Group extends FriendRequest {
-  participants: FriendRequest[]
+  participants: FriendRequest[],
+  unreadMessageCount: number
 }
